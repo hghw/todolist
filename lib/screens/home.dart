@@ -26,6 +26,11 @@ class _HomePageState extends NyState<HomePage> {
   Widget build(BuildContext context) {
     const title = "TRANG CHỦ";
     return MaterialApp(
+      //initialRoute: "/home",
+      // routes: {
+      //   "/home": (context) =>  HomePage(),
+      //     "/create": (context) => Create()
+      // },
       theme: ThemeData.dark().copyWith(
           scaffoldBackgroundColor: Color.fromARGB(255, 222, 222, 222)),
       home: Scaffold(
@@ -109,6 +114,7 @@ class _HomePageState extends NyState<HomePage> {
         {
           return Navigator.push(
               context, MaterialPageRoute(builder: (context) => Create()));
+          //return Navigator.pushNamed(context, '/create');
         }
       case 2:
         {

@@ -1,15 +1,22 @@
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:nylo_framework/nylo_framework.dart';
+import 'package:todolist/controllers/listdodo_controller.dart';
 import 'package:todolist/models/Todo.dart';
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
 
+import '../config/storage_keys.dart';
+
 final TextEditingController inputElement = TextEditingController();
+final TextEditingController editElement = TextEditingController();
 final ScrollController listView = ScrollController();
+
 int _id = 0;
 List<Todo> _listData = [];
 
 class Create extends NyStatefulWidget {
+  final ListTodoController controller = ListTodoController();
 
   Create({Key? key}) : super(key: key, routeName: "/create");
 
@@ -18,8 +25,18 @@ class Create extends NyStatefulWidget {
 }
 
 class _CreateState extends NyState<Create> {
-  //int _activeIndex = 0;
+  @override
+  init() async {
+    _listData = (await widget.controller.list())!;
 
+    int? idStorage = await NyStorage.read("_id");
+
+    if (idStorage != null) {
+      _id = idStorage + 1;
+    }
+
+    super.init();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +63,14 @@ class _CreateState extends NyState<Create> {
                   return ListTile(
                     title: Text(_listData[index].description),
                     leading: ShowModal(id: index),
-                    trailing: DeleteButton(index),
+                    trailing: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ShowEditModal(index),
+                        DeleteButton(index),
+                      ],
+                    ),
                   );
                 }))
       ]),
@@ -72,7 +96,6 @@ class _CreateState extends NyState<Create> {
     );
   }
 
-
   //Widget ButtonSubmit
   @override
   Widget ButtonSubmit(BuildContext context) {
@@ -80,7 +103,7 @@ class _CreateState extends NyState<Create> {
       child: TextButton(
           onPressed: () {
             if (inputElement.text.isEmpty) {
-              ShowNotification("Thông tin trống!", "");
+              ShowNotification(context, "Thông tin trống!", "");
             } else {
               setState(() {
                 _addData(inputElement.text);
@@ -104,6 +127,7 @@ class _CreateState extends NyState<Create> {
         onPressed: () {
           setState(() {
             _listData.clear();
+            NyStorage.deleteAll();
           });
         },
         child: const Text("Xóa tất cả"));
@@ -120,7 +144,7 @@ class _CreateState extends NyState<Create> {
             border: OutlineInputBorder(), hintText: "Điền thông tin..."),
         onSubmitted: (val) {
           if (inputElement.text.isEmpty) {
-            ShowNotification("Thông tin trống!", "");
+            ShowNotification(context, "Thông tin trống!", "");
           } else {
             setState(() {
               _addData(inputElement.text);
@@ -136,25 +160,66 @@ class _CreateState extends NyState<Create> {
   Widget DeleteButton(int index) {
     return TextButton(
         onPressed: () {
-          setState(() => {_deleteItem(index)});
+          setState(() {
+            _deleteItem(index);
+          });
         },
         child: Icon(Icons.delete, color: Colors.red));
   }
 
-  Future ShowNotification(String title, String content) {
-    return showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-                //actionsAlignment: MainAxisAlignment.spaceEvenly,
-                title: Center(child: Text(title.isNotEmpty ? title : "Lỗi!")),
-                //content: Center(child: Text(content.isNotEmpty ? content : "Lỗi!")),
-                actions: [
-                  TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: Text("Đóng"))
-                ]));
+
+  @override
+  Widget ShowEditModal(int id) {
+    return TextButton(
+      onPressed: () {
+        showModalBottomSheet(
+            context: context,
+            builder: (BuildContext context) {
+              return Dialog.fullscreen(
+                // height: 3000,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    mainAxisSize: MainAxisSize.max,
+                    children: <Widget>[
+                      const Text('Chỉnh sửa thông tin'),
+                      InputEdit(id),
+                      ElevatedButton(
+                        child: Text("Đóng"),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            });
+      },
+      child: Icon(Icons.edit),
+    );
+  }
+
+  //Widget InputEdit
+  @override
+  Widget InputEdit(int id) {
+    editElement.text = _listData[id].description;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 18, vertical: 25),
+      child: TextField(
+        controller: editElement,
+        decoration: InputDecoration(
+            border: OutlineInputBorder(), hintText: "Điền thông tin..."),
+        onSubmitted: (val) {
+          if (editElement.text.isEmpty) {
+            ShowNotification(context, "Thông tin trống!", "");
+          } else {
+            setState(() {
+              _editItem(id);
+              Navigator.pop(context);
+            });
+          }
+        },
+      ),
+    );
   }
 }
 
@@ -195,23 +260,43 @@ class ShowModal extends StatelessWidget {
   }
 }
 
+
+
 //Function
-void _addData(String des) {
+Future<void> _addData(String des) async {
   if (des.isNotEmpty) {
-    var item = new Todo(description: des, id: _id);
+    var item = Todo(description: des, id: _id);
 
     if (item != null) {
       _listData.add(item);
+
+      await NyStorage.store(StorageKey.listTodo,
+          jsonEncode(_listData.map((e) => e.toStorage()).toList()));
+
+      await NyStorage.store("_id", _id);
       _id++;
     }
-
     //clear
     inputElement.clear();
   }
 }
 
 void _deleteItem(int index) {
+  //remove list
   _listData.remove(_listData[index]);
+  //remove item in storage
+  NyStorage.deleteAll();
+  NyStorage.store(StorageKey.listTodo,
+      jsonEncode(_listData.map((e) => e.toStorage()).toList()));
+}
+
+void _editItem(int index) {
+  //remove list
+  _listData[index].description = editElement.text;
+  //remove item in storage
+  NyStorage.deleteAll();
+  NyStorage.store(StorageKey.listTodo,
+      jsonEncode(_listData.map((e) => e.toStorage()).toList()));
 }
 
 String _getInfo(int index) {
@@ -233,3 +318,19 @@ List<IconMenu> _listIcon = [
   new IconMenu((Icons.call), "Liên hệ", "/lienhe"),
   new IconMenu((Icons.notifications), "Thông báo", "/notification"),
 ];
+
+Future ShowNotification(BuildContext context, title, String content) {
+  return showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+              //actionsAlignment: MainAxisAlignment.spaceEvenly,
+              title: Center(child: Text(title.isNotEmpty ? title : "Lỗi!")),
+              //content: Center(child: Text(content.isNotEmpty ? content : "Lỗi!")),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("Đóng"))
+              ]));
+}

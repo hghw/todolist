@@ -10,12 +10,8 @@
 */
 
 class StorageKey {
-  static String userToken = "USER_TOKEN";
-  // static String accessToken = "ACCESS_TOKEN";
-  static String userInfo = "USER_INFOR";
-  static String listDiemChay = "LIST_DIEMCHAY";
-  static String timeLastSync = "TIME_LAST_SYNC";
-  static String notiToken = "NOTI_TOKEN";
+  static String listTodo = "LIST_TODO";
+
 
   /// Add your storage keys here...
 }
