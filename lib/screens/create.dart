@@ -167,12 +167,11 @@ class _CreateState extends NyState<Create> {
         child: Icon(Icons.delete, color: Colors.red));
   }
 
-
   @override
   Widget ShowEditModal(int id) {
     return TextButton(
       onPressed: () {
-        showModalBottomSheet(
+        showDialog(
             context: context,
             builder: (BuildContext context) {
               return Dialog.fullscreen(
@@ -182,11 +181,39 @@ class _CreateState extends NyState<Create> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     mainAxisSize: MainAxisSize.max,
                     children: <Widget>[
-                      const Text('Chỉnh sửa thông tin'),
+                      Padding(padding: EdgeInsets.all(40)),
+                      const Text(
+                        'CHỈNH SỬA THÔNG TIN',
+                        style: TextStyle(fontSize: 25),
+                      ),
+                      Padding(padding: EdgeInsets.all(40)),
                       InputEdit(id),
-                      ElevatedButton(
-                        child: Text("Đóng"),
-                        onPressed: () => Navigator.pop(context),
+                      Spacer(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          ElevatedButton(
+                            child: Text("Đóng"),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.all(15),
+                            child: ElevatedButton(
+                              child: Text("Sửa"),
+                              onPressed: () {
+                                setState(() {
+                                  _editItem(id);
+                                  Navigator.pop(context);
+                                });
+                              },
+                              style: ButtonStyle(
+                                  backgroundColor:
+                                      MaterialStateColor.resolveWith(
+                                          (states) => Colors.green)),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -204,20 +231,33 @@ class _CreateState extends NyState<Create> {
     editElement.text = _listData[id].description;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 18, vertical: 25),
-      child: TextField(
-        controller: editElement,
-        decoration: InputDecoration(
-            border: OutlineInputBorder(), hintText: "Điền thông tin..."),
-        onSubmitted: (val) {
-          if (editElement.text.isEmpty) {
-            ShowNotification(context, "Thông tin trống!", "");
-          } else {
-            setState(() {
-              _editItem(id);
-              Navigator.pop(context);
-            });
-          }
-        },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 5),
+            child: Text(
+              "Mô tả",
+              textAlign: TextAlign.start,
+            ),
+          ),
+          TextField(
+            controller: editElement,
+            decoration: InputDecoration(
+                border: OutlineInputBorder(), hintText: "Điền thông tin..."),
+            onSubmitted: (val) {
+              if (editElement.text.isEmpty) {
+                ShowNotification(context, "Thông tin trống!", "");
+              } else {
+                setState(() {
+                  _editItem(id);
+                  Navigator.pop(context);
+                });
+              }
+            },
+          )
+        ],
       ),
     );
   }
@@ -259,8 +299,6 @@ class ShowModal extends StatelessWidget {
     );
   }
 }
-
-
 
 //Function
 Future<void> _addData(String des) async {
